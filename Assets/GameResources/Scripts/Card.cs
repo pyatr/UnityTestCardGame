@@ -85,28 +85,43 @@ public class Card : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        outline.OutlineWidth = 0f;
-        outline.enabled = true;
-        DOTween.To(() => outline.OutlineWidth = 0f,
-                   x => outline.OutlineWidth = x,
-                   outlineWidthCached,
-                   outlineChargeTime);
+        if (ParentDeck)
+        {
+            ParentDeck.StopMovingCard(this);
+            DOTween.Kill(transform);
+            outline.enabled = true;
+            DOTween.To(() => outline.OutlineWidth,
+                       x => outline.OutlineWidth = x,
+                       outlineWidthCached,
+                       outlineChargeTime);
+            RectTransform.DORotate(Vector3.zero, outlineChargeTime);
+            RectTransform.SetAsLastSibling();
+        }
     }
 
     public void OnDrag(PointerEventData eventData)
     {
+        if (ParentDeck)
+        {
 #if UNITY_ANDROID || UNITY_IOS
         RectTransform.position = Input.touches[0].position;
 #else
-        RectTransform.position = Input.mousePosition;
+            RectTransform.position = Input.mousePosition;
 #endif
+            outline.enabled = true;
+        }
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        DOTween.To(() => outline.OutlineWidth = outlineWidthCached,
+        DOTween.Kill(transform);
+        DOTween.To(() => outline.OutlineWidth,
                    x => outline.OutlineWidth = x,
                    0f,
                    outlineChargeTime).onComplete += () => outline.enabled = false;
+        if (ParentDeck)
+        {
+            ParentDeck.ArrangeCards();
+        }
     }
 }

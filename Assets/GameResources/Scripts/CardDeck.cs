@@ -10,6 +10,12 @@ using Random = UnityEngine.Random;
 /// </summary>
 public class CardDeck : MonoBehaviour
 {
+    private struct CardMovingSequence
+    {
+        public Card Card;
+        public Sequence MoveSequence;
+    }
+
     private const int MIN_RANDOM_CHANGE = -2;
     private const int MAX_RANDOM_CHANGE = 9;
 
@@ -34,7 +40,7 @@ public class CardDeck : MonoBehaviour
 
     private List<Card> activeCards = new List<Card>();
 
-    private List<Sequence> movingCards = new List<Sequence>();
+    private List<CardMovingSequence> movingCards = new List<CardMovingSequence>();
 
     private WaitForSeconds randomStatChangeTimer = null;
 
@@ -77,6 +83,23 @@ public class CardDeck : MonoBehaviour
         StartCoroutine(RandomChangeCoroutine());
     }
 
+    /// <summary>
+    /// ”брать карту из списка карт в колоде
+    /// </summary>
+    /// <param name="card"></param>
+    public void RemoveCard(Card card)
+    {
+        if (activeCards.Contains(card))
+        {
+            activeCards.Remove(card);
+            ArrangeCards();
+        }
+    }
+
+    /// <summary>
+    /// ”ничтожить карту
+    /// </summary>
+    /// <param name="card"></param>
     public void DestroyCard(Card card)
     {
         if (activeCards.Contains(card))
@@ -86,23 +109,27 @@ public class CardDeck : MonoBehaviour
             ArrangeCards();
         }
     }
-    #endregion
 
-    #region Private methods
-    [ContextMenu("Generate cards")]
-    private void GenerateCards()
+    /// <summary>
+    /// ѕрекратить движение карты
+    /// </summary>
+    /// <param name="card"></param>
+    public void StopMovingCard(Card card)
     {
-        int generatedCards = Random.Range(minCardAmount, maxCardAmount + 1);
-        imagesToDownload = generatedCards;
-        for (int i = 0; i < generatedCards; i++)
-            GenerateCard();
-        Invoke(nameof(ArrangeCards), MAX_IMAGE_WAIT_TIME);
+        for (int i = 0; i < movingCards.Count; i++)
+        {
+            if (movingCards[i].Card == card)
+            {
+                movingCards[i].MoveSequence.Kill();
+                movingCards.RemoveAt(i);
+            }
+        }
     }
 
-    private void GenerateCard()
+    public void GenerateCard()
     {
         Card newCard = Instantiate(cardPrefab);
-        newCard.transform.SetParent(deckPoint, true);
+        newCard.transform.SetParent(deckPoint, false);
         newCard.RectTransform.anchoredPosition = cardSpawnPoint.anchoredPosition;
         newCard.OnAttributeChanged += OnCardAttributeChanged;
         newCard.ParentDeck = this;
@@ -110,20 +137,12 @@ public class CardDeck : MonoBehaviour
         activeCards.Add(newCard);
     }
 
-    private void CheckIfImagesDownloaded(Action onAllDownloaded)
-    {
-        if (imagesToDownload == 0)
-        {
-            onAllDownloaded?.Invoke();
-        }
-    }
-
-    private void ArrangeCards()
+    public void ArrangeCards()
     {
         //Ќачинаем двигать если есть карты и если нет движущихс€ карт
         if (activeCards.Count > 0)
         {
-            movingCards.ForEach(seq => seq.Kill());
+            movingCards.ForEach(seq => seq.MoveSequence.Kill());
             movingCards.Clear();
             Vector2 cardSize = activeCards[0].RectTransform.sizeDelta;
             //1 если количество карт четное, 0 если нечетное
@@ -140,14 +159,36 @@ public class CardDeck : MonoBehaviour
                 offsetFromCard = i * cardDistanceX;
                 evaluation = placementCurve.Evaluate((offsetFromCard + cardDistanceX / 2) / realAreaSizeX);
                 Vector3 newCardPos = new Vector3(cardArea.anchoredPosition.x + offsetX + offsetFromCard, evaluation * cardSize.y + cardArea.anchoredPosition.y);
-                Vector3 newCardRot = new Vector3(0, 0, rotationOffset - rotationPerCard * (i - activeCards.Count / 2) - rotationPerCard * evenMod / 2);
-                Sequence moveSeq = DOTween.Sequence();
-                movingCards.Add(moveSeq);
-                moveSeq.Append(activeCards[i].RectTransform.DOAnchorPos(newCardPos, cardMoveSpeed).SetEase(movementCurve));
-                moveSeq.Join(activeCards[i].RectTransform.DORotate(newCardRot, cardMoveSpeed).SetEase(movementCurve));
-                moveSeq.onComplete += () => movingCards.Remove(moveSeq);
-                moveSeq.Play();
+                Vector3 newCardRot = new Vector3(0, 0, rotationOffset - rotationPerCard * (i - activeCards.Count / 2) - rotationPerCard * evenMod / 2);                
+                CardMovingSequence sequenceCardPair = new CardMovingSequence();
+                sequenceCardPair.MoveSequence = DOTween.Sequence();
+                sequenceCardPair.Card = activeCards[i];
+                movingCards.Add(sequenceCardPair);
+                sequenceCardPair.MoveSequence.Append(activeCards[i].RectTransform.DOAnchorPos(newCardPos, cardMoveSpeed).SetEase(movementCurve));
+                sequenceCardPair.MoveSequence.Join(activeCards[i].RectTransform.DORotate(newCardRot, cardMoveSpeed).SetEase(movementCurve));
+                sequenceCardPair.MoveSequence.onComplete += () => StopMovingCard(activeCards[i]);
+                sequenceCardPair.MoveSequence.Play();
             }
+        }
+    }
+    #endregion
+
+    #region Private methods
+    [ContextMenu("Generate cards")]
+    private void GenerateCards()
+    {
+        int generatedCards = Random.Range(minCardAmount, maxCardAmount + 1);
+        imagesToDownload = generatedCards;
+        for (int i = 0; i < generatedCards; i++)
+            GenerateCard();
+        Invoke(nameof(ArrangeCards), MAX_IMAGE_WAIT_TIME);
+    }
+
+    private void CheckIfImagesDownloaded(Action onAllDownloaded)
+    {
+        if (imagesToDownload == 0)
+        {
+            onAllDownloaded?.Invoke();
         }
     }
 
