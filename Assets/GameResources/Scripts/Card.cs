@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using DG.Tweening;
+using System.Collections.Generic;
 
 public class Card : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
@@ -12,50 +13,46 @@ public class Card : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 
     public Vector2Int ImageDimensions => imageDimensions;
 
+    public IReadOnlyDictionary<AttributeType, Attribute> Attributes => attributes;
 
     public int Health
     {
-        get => health.Value;
-        set
-        {
-            health.Value = value;
-            OnAttributeChanged.Invoke(this, health);
-        }
+        get => Attributes[AttributeType.Health].Value;
+        set => Attributes[AttributeType.Health].Value = value;
     }
 
     public int Mana
     {
-        get => mana.Value;
-        set
-        {
-            mana.Value = value;
-            OnAttributeChanged.Invoke(this, mana);
-        }
+        get => Attributes[AttributeType.Mana].Value;
+        set => Attributes[AttributeType.Mana].Value = value;
     }
 
     public int Attack
     {
-        get => attack.Value;
-        set
-        {
-            attack.Value = value;
-            OnAttributeChanged.Invoke(this, attack);
-        }
+        get => Attributes[AttributeType.Attack].Value;
+        set => Attributes[AttributeType.Attack].Value = value;
     }
 
-    [SerializeField]
-    private Attribute health, mana, attack;
+    [HideInInspector]
+    public CardDeck ParentDeck;
+
     [SerializeField]
     private UIOutline outline;
     [SerializeField]
     private Text cardName, cardDescription;
     [SerializeField]
     private Image cardImage;
+
+    [SerializeField]
+    private List<Attribute> attributeObjects;
+
     [SerializeField]
     private Vector2Int imageDimensions = new Vector2Int(200, 300);
 
     [SerializeField]
     private float outlineChargeTime = 0.7f;
+
+    private Dictionary<AttributeType, Attribute> attributes = new();
 
     private float outlineWidthCached;
 
@@ -63,18 +60,27 @@ public class Card : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
     {
         RectTransform = transform as RectTransform;
         outlineWidthCached = outline.OutlineWidth;
+        attributeObjects.ForEach(at => attributes.Add(at.AttributeType, at));
     }
 
     private void Start()
     {
-        health.Randomize();
-        mana.Randomize();
-        attack.Randomize();
+        attributeObjects.ForEach(a => { a.OnValueChanged += InvokeAttributeChangeEvent; a.Randomize(); });
+    }
+
+    private void InvokeAttributeChangeEvent(Attribute a)
+    {
+        OnAttributeChanged.Invoke(this, a);
+    }
+
+    private void OnDestroy()
+    {
+        attributeObjects.ForEach(a => { a.OnValueChanged -= InvokeAttributeChangeEvent; });
     }
 
     public void SetImageFromTexture(Texture2D texture)
     {
-        cardImage.sprite = Sprite.Create(texture, new Rect(Vector2.zero, imageDimensions), Vector2.one / 2);
+        cardImage.sprite = Sprite.Create(texture, new Rect(Vector2.zero, new Vector2(texture.width, texture.height)), Vector2.one / 2);
     }
 
     public void OnBeginDrag(PointerEventData eventData)

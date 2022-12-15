@@ -13,26 +13,10 @@ public class StatDisplay : MonoBehaviour
     private Attribute attribute;
     [SerializeField]
     private Text statText;
-    [SerializeField]
-    private float updateTime = 0.8f;
 
-    private int displayValue = 0;
+    private void Awake() => attribute.OnValueChanged += UpdateDisplay;
 
-    private void Awake()
-    {
-        attribute.OnValueChanged += UpdateDisplay;
-    }
+    private void OnDestroy() => attribute.OnValueChanged -= UpdateDisplay;
 
-    private void OnDestroy()
-    {
-        attribute.OnValueChanged -= UpdateDisplay;
-    }
-
-    private void UpdateDisplay(Attribute attr)
-    {
-        DOTween.To(() => displayValue,
-                   x => { displayValue = x; statText.text = x.ToString(); },
-                   attr.Value,
-                   updateTime);
-    }
+    private void UpdateDisplay(Attribute attr) => statText.text = attr.Value.ToString();
 }

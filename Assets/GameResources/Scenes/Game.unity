@@ -431,7 +431,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: -256}
+  m_AnchoredPosition: {x: 0, y: -384}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1025037403
@@ -831,15 +831,6 @@ MonoBehaviour:
       inWeight: 0
       outWeight: 0.042553186
     - serializedVersion: 3
-      time: 0.051579006
-      value: 0.20024952
-      inSlope: 2.137497
-      outSlope: 2.137497
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
       time: 0.50006247
       value: 0.6666917
       inSlope: -0.019913463
@@ -849,17 +840,8 @@ MonoBehaviour:
       inWeight: 0.33333334
       outWeight: 0.33333334
     - serializedVersion: 3
-      time: 0.94954145
-      value: 0.19962132
-      inSlope: -2.5825214
-      outSlope: -2.5825214
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.1723992
-      outWeight: 0.41259456
-    - serializedVersion: 3
       time: 1
-      value: 0.0900383
+      value: 0.09028244
       inSlope: -2.1835206
       outSlope: -2.1835206
       tangentMode: 0
@@ -900,8 +882,8 @@ MonoBehaviour:
   cardMoveStartDelay: 0.1
   rotationPerCard: 8
   rotationOffset: 0
-  damageDelay: 3
-  cardGap: 24
+  randomStatChangeDelay: 1
+  cardGap: 64
 --- !u!1 &1808447841
 GameObject:
   m_ObjectHideFlags: 0

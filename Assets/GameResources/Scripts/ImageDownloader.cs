@@ -41,6 +41,9 @@ public class ImageDownloader : MonoBehaviour
             Debug.LogError(request.error);
         else
             texture = ((DownloadHandlerTexture)request.downloadHandler).texture;
-        container.OnDownloadFinished.Invoke(texture);
+        if (container.OnDownloadFinished != null)
+            container.OnDownloadFinished.Invoke(texture);
+        else
+            Debug.LogError($"No action on download for picture from {container.MediaUrl}");
     }
 }

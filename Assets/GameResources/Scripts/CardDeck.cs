@@ -1,7 +1,9 @@
 using DG.Tweening;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 /// <summary>
 /// Контроллер карточной колоды
@@ -10,6 +12,8 @@ public class CardDeck : MonoBehaviour
 {
     private const int MIN_RANDOM_CHANGE = -2;
     private const int MAX_RANDOM_CHANGE = 9;
+
+    private const float MAX_IMAGE_WAIT_TIME = 10f;
 
     [SerializeField]
     private RectTransform deckPoint, cardArea, cardSpawnPoint;
@@ -26,28 +30,28 @@ public class CardDeck : MonoBehaviour
     private int maxCardAmount = 0;
 
     [SerializeField]
-    private float cardMoveSpeed = 2f, cardMoveStartDelay = 0.5f, rotationPerCard = 20f, rotationOffset = 8f, damageDelay = 0.3f, cardGap = 24f;
+    private float cardMoveSpeed = 2f, cardMoveStartDelay = 0.5f, rotationPerCard = 20f, rotationOffset = 8f, randomStatChangeDelay = 0.3f, cardGap = 24f;
 
     private List<Card> activeCards = new List<Card>();
 
     private List<Sequence> movingCards = new List<Sequence>();
 
-    private WaitForSeconds damageTimer = null;
+    private WaitForSeconds randomStatChangeTimer = null;
 
     private ImageDownloader imageDownloader;
+
+    private int imagesToDownload = 0;
 
     #region Unity methods
     private void Awake()
     {
         imageDownloader = FindObjectOfType<ImageDownloader>();
+        randomStatChangeTimer = new WaitForSeconds(randomStatChangeDelay);
     }
 
     private void Start()
     {
-        int generatedCards = Random.Range(minCardAmount, maxCardAmount + 1);
-        for (int i = 0; i < generatedCards; i++)
-            GenerateCard();
-        ArrangeCards();
+        GenerateCards();
     }
 
     private void OnValidate()
@@ -85,6 +89,35 @@ public class CardDeck : MonoBehaviour
     #endregion
 
     #region Private methods
+    [ContextMenu("Generate cards")]
+    private void GenerateCards()
+    {
+        int generatedCards = Random.Range(minCardAmount, maxCardAmount + 1);
+        imagesToDownload = generatedCards;
+        for (int i = 0; i < generatedCards; i++)
+            GenerateCard();
+        Invoke(nameof(ArrangeCards), MAX_IMAGE_WAIT_TIME);
+    }
+
+    private void GenerateCard()
+    {
+        Card newCard = Instantiate(cardPrefab);
+        newCard.transform.SetParent(deckPoint, true);
+        newCard.RectTransform.anchoredPosition = cardSpawnPoint.anchoredPosition;
+        newCard.OnAttributeChanged += OnCardAttributeChanged;
+        newCard.ParentDeck = this;
+        imageDownloader.GetRandomImage(newCard.ImageDimensions, (texture) => { newCard.SetImageFromTexture(texture); imagesToDownload--; CheckIfImagesDownloaded(ArrangeCards); });
+        activeCards.Add(newCard);
+    }
+
+    private void CheckIfImagesDownloaded(Action onAllDownloaded)
+    {
+        if (imagesToDownload == 0)
+        {
+            onAllDownloaded?.Invoke();
+        }
+    }
+
     private void ArrangeCards()
     {
         //Начинаем двигать если есть карты и если нет движущихся карт
@@ -118,16 +151,6 @@ public class CardDeck : MonoBehaviour
         }
     }
 
-    private void GenerateCard()
-    {
-        Card newCard = Instantiate(cardPrefab);
-        newCard.transform.SetParent(deckPoint, true);
-        newCard.RectTransform.anchoredPosition = cardSpawnPoint.anchoredPosition;
-        imageDownloader.GetRandomImage(newCard.ImageDimensions, (texture) => newCard.SetImageFromTexture(texture));
-        newCard.OnAttributeChanged += OnCardAttributeChanged;
-        activeCards.Add(newCard);
-    }
-
     private void OnCardAttributeChanged(Card card, Attribute attr)
     {
         switch (attr.AttributeType)
@@ -143,10 +166,9 @@ public class CardDeck : MonoBehaviour
     #endregion
 
     #region Coroutines
-
     private IEnumerator RandomChangeCoroutine()
     {
-        while (isActiveAndEnabled)
+        while (isActiveAndEnabled && activeCards.Count > 0)
         {
             for (int i = 0; i < activeCards.Count; i++)
             {
@@ -164,7 +186,7 @@ public class CardDeck : MonoBehaviour
                         activeCards[i].Attack = change;
                         break;
                 }
-                yield return damageTimer;
+                yield return randomStatChangeTimer;
             }
         }
     }
