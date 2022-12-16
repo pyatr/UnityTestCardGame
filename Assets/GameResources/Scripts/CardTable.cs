@@ -38,12 +38,14 @@ public class CardTable : MonoBehaviour
                 {
                     hoveringCards[i].ParentDeck.RemoveCard(hoveringCards[i]);
                     hoveringCards[i].ParentDeck = null;
-                    hoveringCards[i].GetComponent<BoxCollider2D>().enabled = false;
                     hoveringCards[i].RectTransform.SetParent(transform);
-                    hoveringCards[i].RectTransform.DOAnchorPos(cardPosition.anchoredPosition, cardSnapDuration);
+                    Sequence moveSeq = DOTween.Sequence();
+                    moveSeq.Append(hoveringCards[i].RectTransform.DOAnchorPos(cardPosition.anchoredPosition, cardSnapDuration));
+                    moveSeq.Join(hoveringCards[i].RectTransform.DORotate(Vector3.zero, cardSnapDuration));
+                    moveSeq.Play();
+                    hoveringCards[i].GetComponent<BoxCollider2D>().enabled = false;
                 }
             }
-            hoveringCards.Clear();
         }
     }
 }

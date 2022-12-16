@@ -139,11 +139,11 @@ public class CardDeck : MonoBehaviour
 
     public void ArrangeCards()
     {
+        movingCards.ForEach(seq => seq.MoveSequence.Kill());
+        movingCards.Clear();
         //Начинаем двигать если есть карты и если нет движущихся карт
         if (activeCards.Count > 0)
         {
-            movingCards.ForEach(seq => seq.MoveSequence.Kill());
-            movingCards.Clear();
             Vector2 cardSize = activeCards[0].RectTransform.sizeDelta;
             //1 если количество карт четное, 0 если нечетное
             int evenMod = (1 - activeCards.Count % 2);
